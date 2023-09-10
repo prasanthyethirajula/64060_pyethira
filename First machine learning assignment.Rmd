@@ -1,0 +1,115 @@
+---
+title: "Assignment"
+Author: PRASANTH
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-09-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#dataset 'Global YouTube Statistics' the data has a mix of quantitative and qualitative (categorical) variables. 
+# Source of the dataset : Kaggle \# Link of the dataset : <https://www.kaggle.com/code/zifanwei/global-youtube-statistics-2023-eda/input>
+
+```{r}
+#Importing dataset Global YouTube Statistics
+
+Global.YouTube.Statistics <- read.csv("C:/Users/drpra/Downloads/Global YouTube Statistics.csv")
+
+#Checking the top 5-6 rows of the dataset using head function
+head(Global.YouTube.Statistics)
+
+```
+
+```{r}
+#Performing the descriptive statistics for Quantitative and Qualitative variables.
+
+#Descriptive statistics which means finding out mean, median, mode and 
+#standard deviation for Quantitative variables and for Qualitative variables we summarize the frequencies and proportions of the different categories.
+
+#Quantitative variables are numperical contained variables and Qualitative 
+#is character based variables so the dataset Global YouTube Statistics
+#contains both kinds of variables.
+
+#Grouping all the quantitative variables.
+
+# Selected some of the quantitative variables
+quantitative_variables <- c("uploads", "subscribers", "rank")
+
+#as the dataset is huge selected only few variables for permoning 
+
+# The descriptive statistics for some of the quantitative variables
+summary(Global.YouTube.Statistics[quantitative_variables])
+
+# The frequencies of the qualitative variables 
+# For selecting a particular variable we use '$' symbol.
+table(Global.YouTube.Statistics$country)
+table(Global.YouTube.Statistics$channel_type)
+table(Global.YouTube.Statistics$category)
+
+```
+
+```{r}
+
+# Transforming the subscribers variable
+subscribers_log <- log(Global.YouTube.Statistics$subscribers)
+
+#mentioning subscribers_log simply will give us the results of transformed values.
+subscribers_log
+
+
+# The distribution of the transformed variable using histogram.
+hist(subscribers_log)
+
+
+#The output of the code will be a histogram of the transformed variable.
+#The histogram should be more normally distributed than the original variable.
+
+
+```
+
+```{r}
+#To knit as pdf and for scatter plotting installing packages and saving 
+#it to path.
+install.packages("ggplot2", repos = "https://cran.rstudio.com")
+library(ggplot2)
+
+writeLines('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', con = "~/.Renviron")
+
+```
+
+
+
+```{r}
+
+#Plotting technique using plot() function.
+
+# Here i'm selecting the subscribers variable
+subscribers <- Global.YouTube.Statistics$subscribers
+
+# Plotting the subscribers variable
+plot(subscribers)
+
+# Plot the subscribers variable against the video.views variable
+ggplot(Global.YouTube.Statistics, aes(x = subscribers, y = video.views)) +
+  geom_point()
+
+```
+
+```{r}
+#A scatter plot is a type of plot that shows the relationship between two 
+#variables. The x-axis variable is the independent variable and the 
+#y-axis variable is the dependent variable. In this case, the x-axis 
+#variable is the subscribers variable and the y-axis variable is the video.views variable.
+
+#The scatter plot shows that there is a positive correlation between 
+#the number of subscribers and the number of video views. This means 
+#that as the number of subscribers increases, the number of video views 
+#also tends to increase.
+
+```
+
+
