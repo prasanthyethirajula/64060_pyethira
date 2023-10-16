@@ -1,0 +1,186 @@
+---
+title: "FML Assignment 3"
+author: "Prasanth Yethirajula"
+date: "2023-10-13"
+output:
+  pdf_document: default
+  html_document: default
+---
+***
+Summary:
+The "accidentsFull.csv" file has data on over 42,000 car crashes in the U.S. from 2001. These crashes range from no harm to deadly. The data also includes details like the day it happened, the weather, and the kind of road. Companies might want a way to quickly understand how bad a new crash is based on initial details, some of which come from GPS reports.
+
+We aim to figure out if a newly reported crash caused any harm based on a value called "MAX_SEV_IR". If "MAX_SEV_IR" is 1 or 2, we'll label it as "yes" for injury. If it's 0, we'll label it as "no" for no injury.
+
+***
+
+```{r}
+# Install and load the libraries
+library(caret)
+library(e1071)
+```
+
+```{r}
+# Read the dataset
+accidents <- read.csv("C:/Users/drpra/Downloads/accidentsFull.csv")
+# Display first six records
+head(accidents)
+```
+***
+*Question 1:*
+*Using the information in this dataset, if an accident has just been reported and no further information is available, what should the prediction be? (INJURY = Yes or No?) Why?*
+
+*Create a dummy variable called 'Injury'*
+```{r}
+# value “yes” if MAX_SEV_IR = 1 or 2, and otherwise “no.”
+accidents$INJURY= ifelse(accidents$MAX_SEV_IR>0, "YES", "NO")
+table(accidents$INJURY)
+```
+If an accident has just been reported and no information is available, it is assumed that injuries have occurred, i.e. (INJURY = Yes).
+The purpose is to forecast whether or not an accident will result in an injury (MAX_SEV_IR = 1 or 2) or not (MAX_SEV_IR = 0).So, if you have no exact knowledge about a new accident and wish to make an initial forecast, it would be appropriate to predict that there is a potential of injury ("INJURY" = "Yes") because injuries occurred in a proportion of accidents in the historical data.
+
+  There are a total of "20721 NO and 21462 YES"
+  
+***  
+  
+*Question 2:*
+*Select the first 24 records in the dataset and look only at the response (INJURY) and the two predictors WEATHER_R and TRAF_CON_R. Create a pivot table that examines INJURY as a function of the two predictors for these 24 records. Use all three variables in the pivot table as rows/columns.*
+
+```{r}
+#selecting first 24 records and look at response (INJURY) and 2 predictors WEATHER_R and TRAF_CON_R
+#CONVERTING THE VARIABLES TO CATEGORICAL TYPE
+# IDENTIFYING THE TARGET VARIABLE COLUMN INDEX (ASSUMING IT'S THE LAST COLUMN) 
+target_col = dim(accidents)[2]
+
+#CONVERTING ALL COLUMNS EXCEPT THE TARGRT VARIABLE TO FACTORS
+accidents[, 1:(target_col - 1)] = lapply(accidents[, 1:(target_col - 1)], as.factor)
+
+#create a new subset with only the required records
+accidents_24 = accidents[1:24, c("INJURY", "WEATHER_R", "TRAF_CON_R")]
+accidents_24
+```
+```{r}
+#create a  pivot table
+x1= ftable(accidents_24)
+x2= ftable(accidents_24[,-1]) # table for fatality
+x1
+x2
+```
+
+*2(1)*
+*Compute the exact Bayes conditional probabilities of an injury (INJURY = Yes) given the six possible combinations of the predictors.*
+
+```{r}
+# P(INJURY= YES|WEATHER_R= 1, TRAF_CON_R= 0)
+Prob1= x1[3,1]/x2[1,1]
+Prob1
+# P(INJURY= YES|WEATHER_R= 2, TRAF_CON_R= 0)
+Prob2= x1[4,1]/x2[2,1]
+Prob2
+# P(INJURY= YES|WEATHER_R= 1, TRAF_CON_R= 1)
+Prob3= x1[3,2]/x2[1,2]
+Prob3
+# P(INJURY= YES|WEATHER_R= 2, TRAF_CON_R= 1)
+Prob4= x1[4,2]/x2[2,2]
+Prob4
+# P(INJURY= YES|WEATHER_R= 1, TRAF_CON_R= 2)
+Prob5= x1[3,3]/x2[1,3]
+Prob5
+# P(INJURY= YES|WEATHER_R= 2, TRAF_CON_R= 2)
+Prob6= x1[4,3]/x2[2,3]
+Prob6
+```
+*2(2)*
+*Classify the 24 accidents using these probabilities and a cutoff of 0.5.*
+```{r}
+#Adding probability  
+accidents_24_prob= accidents_24
+head(accidents_24_prob)
+probability.injury = c(0.667, 0.167, 0, 0, 0.667, 0.167, 0.167, 0.667, 0.167, 0.167, 0.167, 0)
+
+accidents_24_prob$PROB_INJ = rep(probability.injury, length.out = nrow(accidents_24_prob))
+
+#Add column for injury prediction based on cutoff of 0.5.
+accidents_24_prob$PROB_PREDICT=ifelse(accidents_24_prob$PROB_INJ>.5,"YES","NO")
+accidents_24_prob
+```
+
+*2(3)*
+*Compute manually the naive Bayes conditional probability of an injury given WEATHER_R = 1 and TRAF_CON_R = 1.*
+```{r}
+# Naive bayes is calculated for independent variables 
+
+numerator= 6/9 * 0 * 9/24
+denominator= (6/9 * 0 * 9/24)+(5/15 * 2/15 * 15/24)
+naive_bayes= numerator/denominator
+naive_bayes
+```
+*2(4)*
+*Run a naive Bayes classifier on the 24 records and two predictors. Check the model output to obtain probabilities and classifications for all 24 records. Compare this to the exact Bayes classification. Are the resulting classifications equivalent? Is the ranking (= ordering) of observations equivalent?*
+```{r}
+# Install and load the necessary libraries
+library(e1071)
+library(klaR)
+library(caret)
+
+nb=naiveBayes(INJURY ~ ., data =accidents_24 )
+predict(nb, newdata = accidents_24,type = "raw")
+
+#Check the model with caret package 
+x= accidents_24[,-3]
+y=accidents_24$INJURY
+model = train(x,y,'nb', trControl = trainControl(method = 'cv',number=10))
+model     
+
+#Now the generated classification model can be used for prediction
+model.predicted=predict(model$finalModel,x)
+model.predicted
+
+#Creating a confusion matrix to visualize classification errors.
+table(model.predicted$class,y)
+
+#Comparing
+accidents_24_prob$PREDICT_PROB_NB<-model.predicted$class
+accidents_24_prob
+```
+***
+*Question 3:*
+*Let us now return to the entire dataset. Partition the data into training (60%) and validation (40%).*
+
+*3(1) Run a naive Bayes classifier on the complete training set with the relevant predictors (and INJURY as the response). Note that all predictors are categorical. Show the confusion matrix.*
+
+```{r}
+# Set. seed for reproducing the same sequence
+set.seed(123)
+
+# Split the data into training and validation sets
+trainIndex <- createDataPartition(accidents$INJURY, p = 0.6, list = FALSE)
+train_data <- accidents[trainIndex, ]
+validation_data <- accidents[-trainIndex, ]
+
+# Run a Naive Bayes classifier on the training set
+nb_model <- naiveBayes(INJURY ~ WEATHER_R + TRAF_CON_R, data = train_data)
+
+# Use the model to predict on the validation set
+predictions <- predict(nb_model, newdata = validation_data)
+
+# Create the confusion matrix
+confusionMatrix(as.factor(validation_data$INJURY),predictions)
+conf_matrix <- table(predictions, validation_data$INJURY)
+print(conf_matrix)
+```
+*3(2)*
+*What is the overall error of the validation set?*
+```{r}
+error_rate <- 1 - sum(diag(conf_matrix)) / sum(conf_matrix)
+print(paste("Overall error of the validation set:", error_rate))
+```
+Overview:
+The validation set shows that we got things wrong 47% of the time and right 52% of the time. In some situations, making mistakes 47% of the time might be okay. But in other cases, especially where safety is crucial, even a 4% mistake rate could be too much.
+
+***
+
+
+
+
+
